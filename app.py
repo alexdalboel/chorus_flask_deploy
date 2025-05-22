@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, url_for, jsonify
 import json
 import os
+from urllib.parse import unquote
 
 app = Flask(__name__)
 
@@ -151,7 +152,7 @@ def index():
 def update_detections():
     try:
         data = request.json
-        image_file = data['image_file']
+        image_file = unquote(data['image_file'])  # Decode URL-encoded filename
         new_detections = data['detections']
         current_page = int(request.args.get('page', 1))
         
