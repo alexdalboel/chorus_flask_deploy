@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, url_for, jsonify
+from flask import Flask, render_template, request, url_for, jsonify, send_file
 import json
 import os
 import shutil
@@ -296,6 +296,20 @@ def reset_working_copy():
     except Exception as e:
         print(f"Error resetting working copy: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route("/get-working-file")
+def get_working_file():
+    """Download the working detections file from the data directory"""
+    if os.path.exists(WORKING_JSON):
+        return send_file(WORKING_JSON, as_attachment=True)
+    return "Working file not found", 404
+
+@app.route("/get-original-file")
+def get_original_file():
+    """Download the original detections file"""
+    if os.path.exists(ORIGINAL_JSON):
+        return send_file(ORIGINAL_JSON, as_attachment=True)
+    return "Original file not found", 404
 
 if __name__ == '__main__':
     app.run()
