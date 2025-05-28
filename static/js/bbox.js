@@ -2184,7 +2184,7 @@ window.addEventListener('DOMContentLoaded', function () {
     deleteAllBtn.textContent = 'Delete All Corrections';
     deleteAllBtn.style.position = 'fixed';
     deleteAllBtn.style.bottom = '20px';
-    deleteAllBtn.style.right = '20px';
+    deleteAllBtn.style.left = '20px';  // Changed from 'right' to 'left'
     deleteAllBtn.style.background = 'white';
     deleteAllBtn.style.color = 'white';
     deleteAllBtn.style.border = '1px solid #ddd';
