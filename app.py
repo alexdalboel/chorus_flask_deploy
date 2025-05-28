@@ -1,29 +1,24 @@
-from flask import Flask, render_template, request, url_for, jsonify, send_file
+from flask import Flask, render_template, request, url_for, jsonify
 import json
 import os
-import shutil
 from urllib.parse import unquote
 
 app = Flask(__name__)
 
-# Define paths for JSON files
-DATA_DIR = '/data'  # Render mounted disk
-ORIGINAL_JSON = os.path.join(os.path.dirname(__file__), 'data/detections_50.json')
-WORKING_JSON = os.path.join(DATA_DIR, 'detections_50_working.json')
-
-# Ensure data dir exists (Render mounts it)
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# On first run, copy the original JSON to the disk if it doesn't exist
-if not os.path.exists(WORKING_JSON):
-    shutil.copy(ORIGINAL_JSON, WORKING_JSON)
-
 # Load detections once at startup
-with open(ORIGINAL_JSON, 'r') as f:
+DETECTIONS_PATH = 'data/detections_OWLv2.json'
+
+with open(DETECTIONS_PATH, 'r') as f:
     detections_data = json.load(f)
 
-# Load working detections from the mounted disk
-with open(WORKING_JSON, 'r') as wf:
+# Create a working copy if it doesn't exist
+WORKING_PATH = DETECTIONS_PATH.replace('.json', '_working.json')
+if not os.path.exists(WORKING_PATH):
+    with open(WORKING_PATH, 'w') as wf:
+        json.dump(detections_data, wf, indent=2)
+
+# Load working detections
+with open(WORKING_PATH, 'r') as wf:
     working_detections_data = json.load(wf)
 
 @app.route('/')
@@ -159,7 +154,7 @@ def index():
 def update_detections():
     try:
         data = request.json
-        image_file = unquote(data['image_file'])
+        image_file = unquote(data['image_file'])  # Decode URL-encoded filename
         new_detections = data['detections']
         current_page = int(request.args.get('page', 1))
         
@@ -187,10 +182,10 @@ def update_detections():
         # Update the detections for the current image in the working copy
         working_detections_data[actual_index]['detections'] = new_detections
         
-        # Save the updated data back to the working JSON file on the mounted disk
-        with open(WORKING_JSON, 'w') as f:
+        # Save the updated data back to the working JSON file
+        with open(WORKING_PATH, 'w') as f:
             json.dump(working_detections_data, f, indent=2)
-            print(f"Successfully saved updated detections to {WORKING_JSON}")
+            print(f"Successfully saved updated detections to {WORKING_PATH}")
         
         return jsonify({
             'success': True,
@@ -221,9 +216,9 @@ def get_all_detections():
 def get_stats_data():
     try:
         # Return both original and working detections for stats
-        with open(ORIGINAL_JSON, 'r') as f:
+        with open(DETECTIONS_PATH, 'r') as f:
             original = json.load(f)
-        with open(WORKING_JSON, 'r') as wf:
+        with open(WORKING_PATH, 'r') as wf:
             working = json.load(wf)
         return jsonify({'original': original, 'working': working})
     except Exception as e:
@@ -252,7 +247,7 @@ def get_artworks():
     # Reload working detections data from file
     global working_detections_data
     try:
-        with open(WORKING_JSON, 'r') as f:
+        with open(WORKING_PATH, 'r') as f:
             working_detections_data = json.load(f)
             print(f"Loaded {len(working_detections_data)} artworks from working file")
             # Print all unique labels and categories
@@ -287,29 +282,16 @@ def get_artworks():
 @app.route('/reset_working_copy', methods=['POST'])
 def reset_working_copy():
     try:
-        # Copy the original JSON to the working copy on the mounted disk
-        shutil.copy(ORIGINAL_JSON, WORKING_JSON)
+        with open(DETECTIONS_PATH, 'r') as f:
+            original = json.load(f)
+        with open(WORKING_PATH, 'w') as wf:
+            json.dump(original, wf, indent=2)
         global working_detections_data
-        with open(WORKING_JSON, 'r') as f:
-            working_detections_data = json.load(f)
+        working_detections_data = original
         return jsonify({'success': True})
     except Exception as e:
         print(f"Error resetting working copy: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route("/get-working-file")
-def get_working_file():
-    """Download the working detections file from the data directory"""
-    if os.path.exists(WORKING_JSON):
-        return send_file(WORKING_JSON, as_attachment=True)
-    return "Working file not found", 404
-
-@app.route("/get-original-file")
-def get_original_file():
-    """Download the original detections file"""
-    if os.path.exists(ORIGINAL_JSON):
-        return send_file(ORIGINAL_JSON, as_attachment=True)
-    return "Original file not found", 404
 
 if __name__ == '__main__':
     app.run()

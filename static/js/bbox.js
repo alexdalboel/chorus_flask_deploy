@@ -1507,7 +1507,8 @@ window.addEventListener('DOMContentLoaded', function () {
       document.addEventListener('mouseup', onMouseUp);
     });
 
-    // Add 'Delete All Corrections' button to the tools panel
+    // Add 'Delete All Corrections' button to the tools panel (commented out)
+    /*
     const functionsPanel = document.querySelector('.tools-panel');
     if (functionsPanel) {
       const deleteAllBtn = document.createElement('button');
@@ -1537,6 +1538,7 @@ window.addEventListener('DOMContentLoaded', function () {
       };
       functionsPanel.appendChild(deleteAllBtn);
     }
+    */
 
     // Add function to update stats
     function updateStats() {
@@ -2176,5 +2178,62 @@ window.addEventListener('DOMContentLoaded', function () {
         });
       }
     });
+
+    // Add hidden 'Delete All Corrections' button to the lower right corner
+    const deleteAllBtn = document.createElement('button');
+    deleteAllBtn.textContent = 'Delete All Corrections';
+    deleteAllBtn.style.position = 'fixed';
+    deleteAllBtn.style.bottom = '20px';
+    deleteAllBtn.style.right = '20px';
+    deleteAllBtn.style.background = 'white';
+    deleteAllBtn.style.color = 'white';
+    deleteAllBtn.style.border = '1px solid #ddd';
+    deleteAllBtn.style.borderRadius = '4px';
+    deleteAllBtn.style.padding = '8px 16px';
+    deleteAllBtn.style.fontWeight = 'bold';
+    deleteAllBtn.style.cursor = 'pointer';
+    deleteAllBtn.style.transition = 'all 0.3s ease';
+    deleteAllBtn.style.zIndex = '1000';
+    
+    // Add hover effect
+    deleteAllBtn.addEventListener('mouseenter', function() {
+      this.style.background = '#ff4d4d';
+      this.style.color = 'white';
+      this.style.borderColor = '#ff4d4d';
+    });
+    
+    deleteAllBtn.addEventListener('mouseleave', function() {
+      this.style.background = 'white';
+      this.style.color = 'white';
+      this.style.borderColor = '#ddd';
+    });
+
+    deleteAllBtn.onclick = function () {
+      const password = prompt('Please enter the password to delete all corrections:');
+      if (password === null) return; // User clicked Cancel
+      
+      if (password === 'chorus2024') { // Password for deleting all corrections
+        if (confirm('Are you sure? This action deletes all changes made.')) {
+          fetch('/reset_working_copy', { method: 'POST' })
+            .then(res => {
+              if (!res.ok) throw new Error('Failed to reset working copy');
+              return res.json();
+            })
+            .then(data => {
+              if (data.success) {
+                window.location.reload();
+              } else {
+                alert('Failed to reset corrections: ' + (data.error || 'Unknown error'));
+              }
+            })
+            .catch(err => {
+              alert('Failed to reset corrections: ' + err.message);
+            });
+        }
+      } else {
+        alert('Incorrect password. Deletion cancelled.');
+      }
+    };
+    document.body.appendChild(deleteAllBtn);
 });
   
